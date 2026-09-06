@@ -5,7 +5,7 @@
 ![Deployment](https://img.shields.io/badge/deployment-Railway%20Cloud%2024%2F7-brightgreen.svg)
 ![Status](https://img.shields.io/badge/status-Completed%20%26%20Active-success.svg)
 
-**Qrem** adalah Bot Telegram cerdas berbasis Python yang dirancang khusus untuk membantu mahasiswa mengelola jadwal kuliah, deadline tugas, to-do spontan, rutinitas harian, dan agenda kegiatan khusus dengan sistem pengingat otomatis *real-time* 24/7.
+**Qrem** adalah bot Telegram berbasis Python untuk membantu mengelola jadwal kuliah, deadline tugas, to-do spontan, rutinitas harian, dan agenda kegiatan — lengkap dengan sistem pengingat otomatis *real-time* 24/7.
 
 ---
 
@@ -13,7 +13,7 @@
 
 * ☀️ **Daily Briefing Pagi (Pukul 05:00 WIB)**: Rangkuman otomatis awal hari yang menggabungkan jadwal kuliah hari ini, status deadline tugas, to-do spontan, dan daftar seluruh agenda kegiatan.
 * 🎓 **Alarm Kuliah (1 Jam Sebelum Kelas)**: Pengingat *real-time* 1 jam sebelum jam mulai kuliah (lengkap dengan nama matkul, kelas, dan ruang kuliah).
-* 📝 **Smart Task Deadline Reminders**:
+* 📝 **Pengingat Deadline Tugas**:
   * 🚨 **Hari H Deadline (H-6 Jam)**: Alarm mendesak berbunyi tepat 6 jam sebelum jam batas waktu tugas hari H.
   * 📋 **Sebelum Hari H (Setiap 6 Jam)**: Pengingat berkala tugas mendatang pada pukul **06:00, 12:00, dan 18:00 WIB**.
   * 🛡️ **Filter < 6 Jam**: Tugas yang diinput mepet (< 6 jam sebelum deadline) otomatis dikecualikan dari alarm pengingat berulang.
@@ -59,7 +59,7 @@ Daily Reminder Bot/
 ├── .gitignore            # Daftar file yang diabaikan oleh Git
 ├── Procfile              # Konfigurasi worker deployment cloud (Railway)
 ├── README.md             # Dokumentasi lengkap proyek
-├── bot.py                # Entry point utama aplikasi Telegram Bot (~110 baris)
+├── bot.py                # Entry point utama; mendaftarkan semua handler & menjalankan scheduler
 ├── config.py             # Zona waktu WIB, konstanta hari, & path file JSON
 ├── storage.py            # Logika baca/tulis JSON (jadwal, tugas, todo, agenda, subscriber)
 ├── utils.py              # Fungsi pembantu (validasi jam, format tanggal, daily briefing)
@@ -75,7 +75,7 @@ Daily Reminder Bot/
 ├── jadwal.json           # Data jadwal kuliah & rutinitas harian
 ├── keep_alive.sh         # Script auto-restart utilitas
 ├── requirements.txt      # Daftar pustaka dependency Python
-├── test_bot.py           # Standalone assertion test suite (17 handler test)
+├── test_bot.py           # Suite pengujian otomatis (10 test suite)
 └── Documentation/        # Dokumentasi tangkapan layar pengujian & notifikasi
 ```
 
@@ -90,8 +90,8 @@ Daily Reminder Bot/
 ### 2. Instalasi
 ```bash
 # Clone repositori ini
-git clone https://github.com/raintyaa/daily-reminder-bot.git
-cd daily-reminder-bot
+git clone https://github.com/raintyaa/qrem-daily-reminder-bot.git
+cd qrem-daily-reminder-bot
 
 # Buat & aktifkan virtual environment
 python -m venv .venv

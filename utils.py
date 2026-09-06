@@ -98,11 +98,14 @@ BULAN_MAP = {
     "september": 9, "sep": 9, "sept": 9,
     "oktober": 10, "okt": 10, "october": 10, "oct": 10,
     "november": 11, "nov": 11,
-    "desember": 12, "des": 12, "december": 12, "dec": 12    
+    "desember": 12, "des": 12, "december": 12, "dec": 12
 }
 
+# Kebalikan dari HARI_INDONESIA: nama hari -> indeks (0=senin, ..., 6=minggu)
+DAY_TO_INDEX = {v: k for k, v in HARI_INDONESIA.items()}
+
 def parse_deadline_input(raw_str: str) -> tuple[str | None, str | None]:
-    """    Mengonversi input deadline teks bebas ke format standar (DD-MM-YYYY) dan jam (HH:MM).
+    """Mengonversi input deadline teks bebas ke format standar (DD-MM-YYYY) dan jam (HH:MM).
     Mendukung format angka (12-09-2026) maupun teks acak:
     - 12 september 2026
     - 2026 september 12
@@ -134,7 +137,7 @@ def parse_deadline_input(raw_str: str) -> tuple[str | None, str | None]:
         return get_now_wib().strftime("%d-%m-%Y"), found_time
     if combined_lower in ("besok", "tomorrow"):
         return (get_now_wib() + timedelta(days=1)).strftime("%d-%m-%Y"), found_time
-    if combined_lower in ("lusa",):
+    if combined_lower == "lusa":
         return (get_now_wib() + timedelta(days=2)).strftime("%d-%m-%Y"), found_time
 
     # 2. Hari spesifik (senin, selasa, rabu, kamis, jumat, sabtu, minggu)
@@ -142,11 +145,10 @@ def parse_deadline_input(raw_str: str) -> tuple[str | None, str | None]:
     if day_name_clean.startswith("hari "):
         day_name_clean = day_name_clean[5:].strip()
 
-    day_to_index = {v: k for k, v in HARI_INDONESIA.items()}
-    if day_name_clean in day_to_index:
+    if day_name_clean in DAY_TO_INDEX:
         now_dt = get_now_wib()
         current_day_idx = now_dt.weekday()
-        target_day_idx = day_to_index[day_name_clean]
+        target_day_idx = DAY_TO_INDEX[day_name_clean]
         days_ahead = (target_day_idx - current_day_idx) % 7
         target_dt = now_dt + timedelta(days=days_ahead)
         return target_dt.strftime("%d-%m-%Y"), found_time
@@ -290,7 +292,7 @@ def generate_daily_briefing() -> str:
             elif selisih_hari <= 3:
                 status = f"⏳ *{selisih_hari} hari lagi*"
             else:
-                 status = f"🗓️ {selisih_hari} hari lagi"
+                status = f"🗓️ {selisih_hari} hari lagi"
 
             jam_str = t.get("jam", "-")
             jam_info = f" (Pukul {jam_str} WIB)" if jam_str and jam_str != "-" else ""

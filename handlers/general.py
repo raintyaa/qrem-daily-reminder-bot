@@ -10,7 +10,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     user_name = update.effective_user.first_name if update.effective_user else "Mahasiswa"
     pesan = (
         f"Halo {user_name}! 👋\n\n"
-        "Saya adalah **Bot Pengingat Jadwal & Tugas Kuliah**.\n\n"
+        "Aku bot pengingat jadwal & tugas kuliah kamu.\n\n"
         "Gunakan perintah berikut:\n"
         "• `/jadwal` - Cek jadwal kuliah hari ini\n"
         "• `/jadwal [hari/semua]` - Cek jadwal hari tertentu atau sepekan\n"

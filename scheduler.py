@@ -104,7 +104,7 @@ async def auto_reminder_loop(app) -> None:
                                 f"🏫 **Kelas:** {matkul_item.get('kelas', '-')}\n"
                                 f"📍 **Ruang:** {matkul_item.get('ruang', '-')}\n"
                                 f"⏰ **Waktu Kuliah:** {jam_raw}\n\n"
-                                "Waktunya bersiap-siap menuju kampus! Semangat! 🚀"
+                                "Yuk siap-siap ke kampus! 🚀"
                             )
                             for chat_id in subscribers:
                                 try:
@@ -141,7 +141,7 @@ async def auto_reminder_loop(app) -> None:
                                     f"📝 **Tugas:** {t.get('nama_tugas')}\n"
                                     f"📕 **Matkul:** {t.get('matkul')}\n"
                                     f"⏰ **Batas Waktu:** {jam_display} Hari Ini!\n\n"
-                                    "⚡ *Segera selesaikan dan kumpulkan tugasmu sebelum batas waktu habis!*\n"
+                                    "⚡ *Ayo dikebut, batas waktunya udah mepet!*\n"
                                     f"💡 Ketik `/selesai {t.get('id')}` jika sudah selesai."
                                 )
                                 for chat_id in subscribers:
@@ -193,9 +193,9 @@ async def auto_reminder_loop(app) -> None:
                         daftar_teks = "\n\n".join([item["teks"] for item in tugas_mendatang])
                         pesan_berkala = (
                             f"📋 **PENGINGAT TUGAS BERKALA (Pukul {jam_slot_str} WIB)** 📋\n\n"
-                            "Berikut daftar tugas mendatang yang perlu dipersiapkan / dicicil:\n\n"
+                            "Ini daftar tugas mendatang yang perlu dicicil:\n\n"
                             f"{daftar_teks}\n\n"
-                            "💡 *Tips: Cicil tugasmu agar tidak menumpuk saat mendekati deadline!*\n"
+                            "💡 *Cicil dari sekarang biar nggak numpuk pas deadline!*\n"
                             "Ketik `/selesai [ID]` jika tugas sudah beres."
                         )
                         for chat_id in subscribers:
@@ -224,7 +224,7 @@ async def auto_reminder_loop(app) -> None:
                                     f"🔔 **PENGINGAT AGENDA HARI INI (05:00 Pagi)** 🔔\n\n"
                                     f"📌 **Acara:** {a.get('nama_acara')}\n"
                                     f"📍 **Info/Lokasi:** {keterangan_str}\n\n"
-                                    "Jangan lupa hari ini kamu ada agenda tersebut! Semangat! ✨"
+                                    "Jangan sampai kelewat, hari ini ada agenda ini! ✨"
                                 )
                                 for chat_id in subscribers:
                                     try:
