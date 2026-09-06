@@ -44,9 +44,9 @@ Bot **Qrem** dilengkapi dengan 17 perintah handler interaktif:
 | `/todo [Kegiatan] \| [Hari]` | Mencatat to-do baru dengan target hari spesifik/relatif (default hari ini) |
 | `/listtodo [hari/semua]` | Menampilkan daftar to-do aktif (bisa filter per hari) |
 | `/berestodo [ID 1] [ID 2] ...` | Mencoret satu atau beberapa to-do selesai sekaligus |
-| `/tambahagenda [Acara] \| [DD-MM-YYYY] \| [Info]` | Menambah agenda kegiatan khusus baru |
+| `/tambahagenda [Acara] \| [Tanggal/Hari] \| [Info]` | Menambah agenda kegiatan khusus baru (mendukung teks bulan, angka, & hari fleksibel) |
 | `/agenda` | Menampilkan daftar seluruh agenda mendatang |
-| `/hapusagenda [ID]` | Menghapus agenda acara yang telah terlaksana |
+| `/hapusagenda [ID 1] [ID 2] ...` | Menghapus satu atau beberapa agenda yang telah terlaksana |
 | `/cekpengingat` | Menampilkan pesan briefing harian secara instan kapan saja |
 
 ---

@@ -126,7 +126,31 @@ def parse_deadline_input(raw_str: str) -> tuple[str | None, str | None]:
     
     if not remaining_tokens:
         return None, None
-    
+
+    combined_lower = " ".join(remaining_tokens).lower().strip()
+
+    # 1. Hari relatif
+    if combined_lower in ("hari ini", "today"):
+        return get_now_wib().strftime("%d-%m-%Y"), found_time
+    if combined_lower in ("besok", "tomorrow"):
+        return (get_now_wib() + timedelta(days=1)).strftime("%d-%m-%Y"), found_time
+    if combined_lower in ("lusa",):
+        return (get_now_wib() + timedelta(days=2)).strftime("%d-%m-%Y"), found_time
+
+    # 2. Hari spesifik (senin, selasa, rabu, kamis, jumat, sabtu, minggu)
+    day_name_clean = combined_lower
+    if day_name_clean.startswith("hari "):
+        day_name_clean = day_name_clean[5:].strip()
+
+    day_to_index = {v: k for k, v in HARI_INDONESIA.items()}
+    if day_name_clean in day_to_index:
+        now_dt = get_now_wib()
+        current_day_idx = now_dt.weekday()
+        target_day_idx = day_to_index[day_name_clean]
+        days_ahead = (target_day_idx - current_day_idx) % 7
+        target_dt = now_dt + timedelta(days=days_ahead)
+        return target_dt.strftime("%d-%m-%Y"), found_time
+
     if len(remaining_tokens) == 1:
         part = remaining_tokens[0]
         try:

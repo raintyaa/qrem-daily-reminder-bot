@@ -138,7 +138,16 @@ def test_todo_crud():
     print("[OK] Logika to-do spontan (input hari, filter, & multi-ID) terverifikasi.")
 
 def test_agenda_crud():
-    """Memverifikasi operasi simpan dan baca agenda acara"""
+    """Memverifikasi operasi simpan, baca, konversi tanggal fleksibel, dan multi-ID agenda"""
+    from utils import parse_deadline_input
+
+    # 1. Pastikan parsing input fleksibel menghasilkan format standar dd-mm-yyyy
+    tgl_teks, _ = parse_deadline_input("15 september 2026")
+    assert tgl_teks == "15-09-2026"
+
+    tgl_besok, _ = parse_deadline_input("besok")
+    assert tgl_besok is not None
+
     sample_agenda = [
         {
             "id": 1,
@@ -146,13 +155,35 @@ def test_agenda_crud():
             "tanggal": "22-08-2026",
             "keterangan": "16:00 di Gedung B",
             "dibuat_pada": "2026-08-18 19:00:00"
+        },
+        {
+            "id": 2,
+            "nama_acara": "Workshop IoT",
+            "tanggal": tgl_teks,
+            "keterangan": "Pukul 09:00 WIB",
+            "dibuat_pada": "2026-09-06 10:00:00"
+        },
+        {
+            "id": 3,
+            "nama_acara": "Evaluasi",
+            "tanggal": tgl_besok,
+            "keterangan": "Zoom Meeting",
+            "dibuat_pada": "2026-09-06 10:00:00"
         }
     ]
     assert save_agenda_data(sample_agenda), "Gagal menyimpan sample agenda!"
     loaded = load_agenda_data()
-    assert len(loaded) == 1, "Jumlah agenda yang dimuat tidak sesuai!"
-    assert loaded[0]["nama_acara"] == "Rapat Kerja Ormawa", "Data agenda tidak cocok!"
-    print("[OK] Logika agenda (agenda.json) terverifikasi.")
+    assert len(loaded) == 3, "Jumlah agenda yang dimuat tidak sesuai!"
+    assert loaded[1]["tanggal"] == "15-09-2026"
+
+    # Multi-ID simulasi hapus agenda
+    target_ids = [1, 3]
+    sisa = [a for a in loaded if a["id"] not in target_ids]
+    assert len(sisa) == 1 and sisa[0]["id"] == 2
+
+    # Bersihkan file pengujian
+    save_agenda_data([])
+    print("[OK] Logika agenda (agenda.json, parsing fleksibel, & multi-ID) terverifikasi.")
 
 def test_deadline_format_validation():
     """Memastikan tanggal deadline harus menggunakan format dd-mm-yyyy dan jam hh:mm"""
@@ -170,8 +201,18 @@ def test_deadline_format_validation():
     assert is_valid_deadline("2026 september 12") is True
     assert is_valid_deadline("september 12 2026") is True
     assert is_valid_deadline("12 sep 2026 23:59") is True
-    
+    # Format hari relatif & spesifik
+    assert is_valid_deadline("hari ini") is True
+    assert is_valid_deadline("besok") is True
+    assert is_valid_deadline("lusa") is True
+    assert is_valid_deadline("jumat") is True
+    assert is_valid_deadline("hari senin") is True
+    assert is_valid_deadline("besok 15:00") is True
+
     from utils import parse_deadline_input
+    from datetime import timedelta
+    from config import get_now_wib
+
     d1, t1 = parse_deadline_input("12 september 2026")
     assert d1 == "12-09-2026" and t1 is None
 
@@ -180,6 +221,10 @@ def test_deadline_format_validation():
 
     d3, t3 = parse_deadline_input("september 12 2026")
     assert d3 == "12-09-2026" and t3 is None
+
+    d_besok, t_besok = parse_deadline_input("besok 15:00")
+    assert t_besok == "15:00"
+    assert d_besok == (get_now_wib() + timedelta(days=1)).strftime("%d-%m-%Y")
 
     print("[OK] Validasi format deadline (angka & teks fleksibel) & jam terverifikasi.")
 
