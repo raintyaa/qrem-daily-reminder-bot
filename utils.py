@@ -54,6 +54,38 @@ def normalize_rutinitas_item(item, default_id: int = 1) -> dict:
         "kegiatan": str(item)
     }
 
+def parse_hari_todo(hari_str: str, now_dt: datetime = None) -> str | None:
+    """
+    Menormalisasi input hari untuk to-do.
+    Mendukung:
+    - Nama hari: 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu', 'minggu' (opsional dengan awalan 'hari ')
+    - Relatif: 'hari ini' / 'today' -> nama hari saat ini
+    - 'besok' / 'tomorrow' -> nama hari esok
+    - Berulang: 'setiap hari', 'tiap hari', 'daily', 'semua', 'all' -> 'setiap hari'
+    """
+    if not hari_str:
+        return None
+    raw = hari_str.lower().strip()
+    if raw in ("setiap hari", "tiap hari", "daily", "semua", "all", "everyday"):
+        return "setiap hari"
+
+    if now_dt is None:
+        now_dt = get_now_wib()
+
+    if raw in ("hari ini", "today"):
+        return HARI_INDONESIA[now_dt.weekday()]
+
+    if raw in ("besok", "tomorrow"):
+        return HARI_INDONESIA[(now_dt.weekday() + 1) % 7]
+
+    if raw.startswith("hari "):
+        raw = raw[5:].strip()
+
+    if raw in HARI_INDONESIA.values():
+        return raw
+
+    return None
+
 BULAN_MAP = {
     "januari": 1, "jan": 1, "january": 1,
     "februari": 2, "feb": 2, "february": 2,
@@ -249,10 +281,18 @@ def generate_daily_briefing() -> str:
 
     todo_list = load_todo_data()
     if todo_list:
-        pesan += "\n----------------------------\n"
-        pesan += "\n📌 **Daftar To-Do Spontan Hari Ini:**\n"
-        for item in todo_list:
-            pesan += f"• 🆔 `#{item.get('id')}`: {item.get('kegiatan')}\n"
+        todo_hari_ini = [
+            item for item in todo_list
+            if item.get("hari", "hari ini").lower() in (hari_ini, "hari ini", "setiap hari", "semua", "all", "daily")
+        ]
+        if todo_hari_ini:
+            pesan += "\n----------------------------\n"
+            pesan += f"\n📌 **Daftar To-Do Spontan Hari Ini ({hari_ini.title()}):**\n"
+            for item in todo_hari_ini:
+                tag_hari = ""
+                if item.get("hari", "").lower() in ("setiap hari", "semua", "all", "daily"):
+                    tag_hari = " *(Setiap Hari)*"
+                pesan += f"• 🆔 `#{item.get('id')}`: {item.get('kegiatan')}{tag_hari}\n"
 
     agenda_list = load_agenda_data()
     if agenda_list:

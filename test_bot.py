@@ -80,19 +80,62 @@ def test_tugas_crud():
     print("[OK] Logika tugas (tugas.json) dengan fitur jam terverifikasi.")
 
 def test_todo_crud():
-    """Memverifikasi operasi simpan dan baca to-do spontan"""
+    """Memverifikasi operasi simpan, baca, normalisasi hari, dan multi-ID to-do spontan"""
+    from utils import parse_hari_todo
+    from datetime import datetime
+    
+    # 1. Verifikasi parse_hari_todo
+    dummy_senin = datetime(2026, 9, 7)  # 7 Sept 2026 adalah Senin (weekday 0)
+    assert parse_hari_todo("senin") == "senin"
+    assert parse_hari_todo("Hari Kamis") == "kamis"
+    assert parse_hari_todo("setiap hari") == "setiap hari"
+    assert parse_hari_todo("tiap hari") == "setiap hari"
+    assert parse_hari_todo("hari ini", dummy_senin) == "senin"
+    assert parse_hari_todo("besok", dummy_senin) == "selasa"
+    assert parse_hari_todo("bukan_hari") is None
+
+    # 2. Simpan dan muat data to-do dengan hari dan tanpa hari (backward compatibility)
     sample_todo = [
         {
             "id": 1,
             "kegiatan": "Ambil laundry sore ini",
             "dibuat_pada": "2026-08-17 07:00:00"
+        },
+        {
+            "id": 2,
+            "kegiatan": "Servis motor ke bengkel",
+            "hari": "kamis",
+            "dibuat_pada": "2026-09-06 10:00:00"
+        },
+        {
+            "id": 3,
+            "kegiatan": "Olahraga pagi",
+            "hari": "setiap hari",
+            "dibuat_pada": "2026-09-06 10:00:00"
         }
     ]
     assert save_todo_data(sample_todo), "Gagal menyimpan sample to-do!"
     loaded = load_todo_data()
-    assert len(loaded) == 1, "Jumlah to-do yang dimuat tidak sesuai!"
-    assert loaded[0]["kegiatan"] == "Ambil laundry sore ini", "Data to-do tidak cocok!"
-    print("[OK] Logika to-do spontan (todo.json) terverifikasi.")
+    assert len(loaded) == 3, "Jumlah to-do yang dimuat tidak sesuai!"
+    assert loaded[0].get("hari", "hari ini") == "hari ini", "Fallback backward compatibility gagal!"
+    assert loaded[1]["hari"] == "kamis", "Hari to-do spesifik tidak tersimpan!"
+    assert loaded[2]["hari"] == "setiap hari", "Hari to-do berulang tidak tersimpan!"
+
+    # 3. Filter to-do untuk hari Kamis
+    todo_kamis = [
+        t for t in loaded
+        if t.get("hari", "hari ini").lower() in ("kamis", "setiap hari", "semua")
+    ]
+    assert len(todo_kamis) == 2  # Servis motor (kamis) + Olahraga (setiap hari)
+
+    # 4. Multi-ID berestodo simulasi
+    target_ids = [1, 3]
+    sisa = [t for t in loaded if t["id"] not in target_ids]
+    assert len(sisa) == 1 and sisa[0]["id"] == 2
+
+    # Bersihkan file pengujian
+    save_todo_data([])
+    print("[OK] Logika to-do spontan (input hari, filter, & multi-ID) terverifikasi.")
 
 def test_agenda_crud():
     """Memverifikasi operasi simpan dan baca agenda acara"""
@@ -142,9 +185,23 @@ def test_deadline_format_validation():
 
 def test_daily_briefing():
     """Memverifikasi perangkaian pesan briefing harian otomatis"""
+    from config import HARI_INDONESIA, get_now_wib
+    now_dt = get_now_wib()
+    hari_ini = HARI_INDONESIA[now_dt.weekday()]
+    hari_lain = HARI_INDONESIA[(now_dt.weekday() + 2) % 7]
+
+    # Uji filtering to-do di daily briefing
+    test_todo = [
+        {"id": 101, "kegiatan": "To-Do Khusus Hari Ini", "hari": hari_ini},
+        {"id": 102, "kegiatan": "To-Do Hari Lain", "hari": hari_lain}
+    ]
+    save_todo_data(test_todo)
     briefing = generate_daily_briefing()
     assert "PENGINGAT HARIAN" in briefing, "Header pengingat harian tidak ditemukan!"
-    print("[OK] Logika perangkaian pesan briefing harian terverifikasi.")
+    assert "To-Do Khusus Hari Ini" in briefing, "To-do hari ini harus masuk briefing!"
+    assert "To-Do Hari Lain" not in briefing, "To-do hari lain tidak boleh masuk briefing hari ini!"
+    save_todo_data([])
+    print("[OK] Logika perangkaian pesan briefing harian & filter to-do terverifikasi.")
 
 def test_subscribers():
     """Memverifikasi pencatatan subscriber chat id"""

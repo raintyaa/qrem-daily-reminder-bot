@@ -41,9 +41,9 @@ Bot **Qrem** dilengkapi dengan 17 perintah handler interaktif:
 | `/tambahtugas [Nama] \| [Tanggal] \| [Matkul] \| [Jam]` | Menambah tugas kuliah baru (mendukung format angka & teks bulan fleksibel) |
 | `/listtugas` | Menampilkan daftar tugas kuliah aktif & hitung mundur deadline |
 | `/selesai [ID]` | Menghapus / menyelesaikan tugas kuliah |
-| `/todo [Kegiatan]` | Mencatat to-do spontan baru |
-| `/listtodo` | Menampilkan daftar to-do spontan aktif |
-| `/berestodo [ID]` | Mencoret to-do spontan yang sudah selesai |
+| `/todo [Kegiatan] \| [Hari]` | Mencatat to-do baru dengan target hari spesifik/relatif (default hari ini) |
+| `/listtodo [hari/semua]` | Menampilkan daftar to-do aktif (bisa filter per hari) |
+| `/berestodo [ID 1] [ID 2] ...` | Mencoret satu atau beberapa to-do selesai sekaligus |
 | `/tambahagenda [Acara] \| [DD-MM-YYYY] \| [Info]` | Menambah agenda kegiatan khusus baru |
 | `/agenda` | Menampilkan daftar seluruh agenda mendatang |
 | `/hapusagenda [ID]` | Menghapus agenda acara yang telah terlaksana |
