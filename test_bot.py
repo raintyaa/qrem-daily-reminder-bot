@@ -15,6 +15,7 @@ from bot import (
     save_jadwal_data,
     normalize_rutinitas_item,
     generate_daily_briefing,
+    cleanup_expired_tasks,
     load_subscribers,
     register_subscriber,
 )
@@ -326,11 +327,69 @@ def test_rutinitas_crud():
 
     print("[OK] Logika penyeragaman, filter hari, & multi-ID rutinitas terverifikasi.")
 
+def test_cleanup_expired_tasks():
+    """Memverifikasi penghapusan otomatis tugas yang telah melewati deadline."""
+    from datetime import datetime
+    from config import WIB
+
+    # Mock waktu acuan: 11 September 2026, 10:00 WIB
+    mock_now = datetime(2026, 9, 11, 10, 0, tzinfo=WIB)
+
+    sample_tugas = [
+        {
+            "id": 1,
+            "nama_tugas": "Tugas Sudah Lewat Kemarin",
+            "deadline": "10-09-2026",
+            "jam": "23:59",
+            "matkul": "Kalkulus"
+        },
+        {
+            "id": 2,
+            "nama_tugas": "Tugas Hari Ini Jam Sudah Lewat",
+            "deadline": "11-09-2026",
+            "jam": "08:00",
+            "matkul": "Fisika"
+        },
+        {
+            "id": 3,
+            "nama_tugas": "Tugas Hari Ini Jam Belum Lewat",
+            "deadline": "11-09-2026",
+            "jam": "14:00",
+            "matkul": "Pemrograman"
+        },
+        {
+            "id": 4,
+            "nama_tugas": "Tugas Masa Depan",
+            "deadline": "15-09-2026",
+            "jam": "23:59",
+            "matkul": "Basis Data"
+        }
+    ]
+
+    save_tugas_data(sample_tugas)
+    aktif = cleanup_expired_tasks(mock_now)
+
+    assert len(aktif) == 2, f"Harusnya tersisa 2 tugas aktif, tetapi ada {len(aktif)}!"
+    aktif_ids = {t["id"] for t in aktif}
+    assert 3 in aktif_ids, "Tugas ID 3 (belum lewat) harusnya tetap ada!"
+    assert 4 in aktif_ids, "Tugas ID 4 (masa depan) harusnya tetap ada!"
+    assert 1 not in aktif_ids, "Tugas ID 1 (kemarin) harusnya terhapus!"
+    assert 2 not in aktif_ids, "Tugas ID 2 (tadi pagi) harusnya terhapus!"
+
+    # Pastikan data di file tugas.json juga terupdate
+    loaded = load_tugas_data()
+    assert len(loaded) == 2, "Data di storage tugas.json tidak terupdate setelah cleanup!"
+
+    # Bersihkan file setelah pengujian
+    save_tugas_data([])
+    print("[OK] Logika penghapusan otomatis tugas kedaluwarsa (cleanup_expired_tasks) terverifikasi.")
+
 if __name__ == "__main__":
     test_handlers()
     test_jadwal_data()
     test_rutinitas_crud()
     test_tugas_crud()
+    test_cleanup_expired_tasks()
     test_todo_crud()
     test_agenda_crud()
     test_deadline_format_validation()

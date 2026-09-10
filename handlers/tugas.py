@@ -2,7 +2,13 @@ from telegram import Update
 from telegram.ext import ContextTypes
 from config import get_now_wib
 from storage import load_tugas_data, save_tugas_data
-from utils import is_valid_deadline, is_valid_time, normalize_time, parse_deadline_input
+from utils import (
+    is_valid_deadline,
+    is_valid_time,
+    normalize_time,
+    parse_deadline_input,
+    cleanup_expired_tasks,
+)
 
 async def tambahtugas_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handler untuk perintah /tambahtugas [Nama Tugas] | [DD-MM-YYYY] | [Matkul] | [Jam (opsional)]"""
@@ -52,7 +58,7 @@ async def tambahtugas_command(update: Update, context: ContextTypes.DEFAULT_TYPE
     else:
         jam_str = "-"
 
-    tugas_list = load_tugas_data()
+    tugas_list = cleanup_expired_tasks()
     next_id = max([t.get("id", 0) for t in tugas_list], default=0) + 1
 
     tugas_baru = {
@@ -83,7 +89,7 @@ async def tambahtugas_command(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 async def listtugas_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handler untuk perintah /listtugas"""
-    tugas_list = load_tugas_data()
+    tugas_list = cleanup_expired_tasks()
     if not tugas_list:
         await update.message.reply_text("🎉 **Tidak ada tugas aktif!** Kamu bebas tugas untuk saat ini.", parse_mode="Markdown")
         return
@@ -113,7 +119,7 @@ async def selesai_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         return
 
     target_id = int(target_id_str)
-    tugas_list = load_tugas_data()
+    tugas_list = cleanup_expired_tasks()
 
     tugas_ditemukan = None
     sisa_tugas = []

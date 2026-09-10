@@ -17,6 +17,7 @@
   * 🚨 **Hari H Deadline (H-6 Jam)**: Alarm mendesak berbunyi tepat 6 jam sebelum jam batas waktu tugas hari H.
   * 📋 **Sebelum Hari H (Setiap 6 Jam)**: Pengingat berkala tugas mendatang pada pukul **06:00, 12:00, dan 18:00 WIB**.
   * 🛡️ **Filter < 6 Jam**: Tugas yang diinput mepet (< 6 jam sebelum deadline) otomatis dikecualikan dari alarm pengingat berulang.
+  * 🧹 **Auto-Cleanup Tugas Kedaluwarsa**: Tugas yang sudah melewati batas waktu deadline otomatis dihapus dari daftar tugas aktif.
 * ⏰ **Rutinitas Kustom & Fitur Coret (`/beresrutinitas`)**: Alarm pengingat kegiatan rutin harian maupun hari spesifik (misal: salat Jumat atau olahraga akhir pekan) dengan dukungan CRUD penuh via chat (`/tambahrutinitas`, `/hapusrutinitas`) dan fitur centang/coret yang **otomatis di-reset setiap pergantian hari (00:00 WIB)**.
 * 📅 **Agenda Kegiatan Khusus & Event Tracker**: Pencatatan acara bertanggal khusus (rapat ormawa, kerja kelompok, webinar) dengan pengingat otomatis pada jam 05:00 pagi di Hari H acara.
 * 📌 **To-Do Spontan (Non-Kuliah)**: Pencatatan cepat untuk urusan pribadi/spontan (`/todo`, `/listtodo`, `/berestodo`).
@@ -39,7 +40,7 @@ Bot **Qrem** dilengkapi dengan 17 perintah handler interaktif:
 | `/hapusrutinitas [ID]` | Menghapus kegiatan rutinitas berdasarkan nomor ID |
 | `/beresrutinitas [ID 1] [ID 2] ...` | Mencoret satu atau beberapa rutinitas selesai sekaligus (reset otomatis 00:00) |
 | `/tambahtugas [Nama] \| [Tanggal] \| [Matkul] \| [Jam]` | Menambah tugas kuliah baru (mendukung format angka & teks bulan fleksibel) |
-| `/listtugas` | Menampilkan daftar tugas kuliah aktif & hitung mundur deadline |
+| `/listtugas` | Menampilkan daftar tugas aktif & otomatis membersihkan tugas kedaluwarsa |
 | `/selesai [ID]` | Menghapus / menyelesaikan tugas kuliah |
 | `/todo [Kegiatan] \| [Hari]` | Mencatat to-do baru dengan target hari spesifik/relatif (default hari ini) |
 | `/listtodo [hari/semua]` | Menampilkan daftar to-do aktif (bisa filter per hari) |
@@ -75,7 +76,7 @@ Daily Reminder Bot/
 ├── jadwal.json           # Data jadwal kuliah & rutinitas harian
 ├── keep_alive.sh         # Script auto-restart utilitas
 ├── requirements.txt      # Daftar pustaka dependency Python
-├── test_bot.py           # Suite pengujian otomatis (10 test suite)
+├── test_bot.py           # Suite pengujian otomatis (11 test suite)
 └── Documentation/        # Dokumentasi tangkapan layar pengujian & notifikasi
 ```
 

@@ -12,6 +12,7 @@ from utils import (
     should_remind_task,
     get_task_deadline_dt,
     generate_daily_briefing,
+    cleanup_expired_tasks,
 )
 
 async def auto_reminder_loop(app) -> None:
@@ -119,6 +120,7 @@ async def auto_reminder_loop(app) -> None:
 
             # 4. Pengingat Tugas Kuliah:
             # 4A. Hari H Deadline (Tepat 6 Jam Sebelum Jam Batas Waktu)
+            cleanup_expired_tasks(now)
             tugas_list = load_tugas_data()
             for t in tugas_list:
                 if not should_remind_task(t):

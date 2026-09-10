@@ -3,6 +3,7 @@ from config import WIB, HARI_INDONESIA, get_now_wib
 from storage import (
     load_jadwal_data,
     load_tugas_data,
+    save_tugas_data,
     load_todo_data,
     load_agenda_data,
 )
@@ -224,6 +225,27 @@ def get_task_deadline_dt(t: dict) -> datetime | None:
     except Exception:
         return None
 
+def cleanup_expired_tasks(now_dt: datetime = None) -> list:
+    """Menghapus tugas yang sudah melewati batas waktu/deadline dari daftar tugas aktif."""
+    if now_dt is None:
+        now_dt = get_now_wib()
+    tugas_list = load_tugas_data()
+    if not tugas_list:
+        return []
+
+    aktif = []
+    berubah = False
+    for t in tugas_list:
+        deadline_dt = get_task_deadline_dt(t)
+        if deadline_dt and now_dt > deadline_dt:
+            berubah = True
+        else:
+            aktif.append(t)
+
+    if berubah:
+        save_tugas_data(aktif)
+    return aktif
+
 def should_remind_task(t: dict) -> bool:
     """Memeriksa apakah rentang waktu pembuatan tugas ke deadline minimal 6 jam."""
     deadline_dt = get_task_deadline_dt(t)
@@ -273,7 +295,7 @@ def generate_daily_briefing() -> str:
 
     pesan += "\n----------------------------\n"
 
-    tugas_list = load_tugas_data()
+    tugas_list = cleanup_expired_tasks()
     today_dt = get_now_wib().date()
     tugas_mendesak = []
 
