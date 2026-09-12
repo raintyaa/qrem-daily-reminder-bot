@@ -36,8 +36,8 @@ Bot **Qrem** dilengkapi dengan 17 perintah handler interaktif:
 | `/jadwal [hari/semua]` | Menampilkan jadwal kuliah hari tertentu atau sepekan penuh |
 | `/rutinitas` | Menampilkan daftar rutinitas hari ini & status selesainya |
 | `/rutinitas [hari/semua]` | Menampilkan rutinitas hari tertentu atau seluruh sepekan |
-| `/tambahrutinitas [Hari] \| [Jam] \| [Kegiatan]` | Menambah rutinitas kustom baru (setiap hari atau hari spesifik) |
-| `/hapusrutinitas [ID]` | Menghapus kegiatan rutinitas berdasarkan nomor ID |
+| `/tambahrutinitas [Hari] \| [Jam] \| [Kegiatan]` | Menambah rutinitas kustom baru (mendukung multi-hari, contoh: `senin, kamis`) |
+| `/hapusrutinitas [ID] [Hari (opsional)]` | Menghapus rutinitas permanen (bisa multi-ID) atau mencopot hari tertentu dari rutinitas |
 | `/beresrutinitas [ID 1] [ID 2] ...` | Mencoret satu atau beberapa rutinitas selesai sekaligus (reset otomatis 00:00) |
 | `/tambahtugas [Nama] \| [Tanggal] \| [Matkul] \| [Jam]` | Menambah tugas kuliah baru (mendukung format angka & teks bulan fleksibel) |
 | `/listtugas` | Menampilkan daftar tugas aktif & otomatis membersihkan tugas kedaluwarsa |

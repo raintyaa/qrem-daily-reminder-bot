@@ -13,6 +13,7 @@ from utils import (
     get_task_deadline_dt,
     generate_daily_briefing,
     cleanup_expired_tasks,
+    is_rutinitas_active_on_day,
 )
 
 async def auto_reminder_loop(app) -> None:
@@ -56,13 +57,13 @@ async def auto_reminder_loop(app) -> None:
                 r_kegiatan = r.get("kegiatan", "-")
                 r_id = r.get("id", 0)
 
-                if r_hari in ("setiap hari", "semua", "all", "daily", hari_ini):
+                if is_rutinitas_active_on_day(r_hari, hari_ini):
                     key_rutinitas = f"{today_date}_{r_id}_{r_jam}"
                     if current_time_str == r_jam and key_rutinitas not in rutinitas_terkirim:
                         subscribers = load_subscribers()
                         print(f"[Scheduler] Pukul {current_time_str}: Waktu cocok! Mengirim rutinitas '{r_kegiatan}' ke: {subscribers}")
                         if subscribers:
-                            label_hari = f" ({r_hari.capitalize()})" if r_hari != "setiap hari" else ""
+                            label_hari = f" ({r_hari.title()})" if r_hari != "setiap hari" else ""
                             pesan_rutinitas = (
                                 f"⏰ **PENGINGAT RUTINITAS ({r_jam} WIB)**\n\n"
                                 f"🔔 *Waktunya:* **{r_kegiatan}**{label_hari}\n\n"

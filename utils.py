@@ -55,6 +55,60 @@ def normalize_rutinitas_item(item, default_id: int = 1) -> dict:
         "kegiatan": str(item)
     }
 
+ORDER_HARI = [HARI_INDONESIA[i] for i in range(7)]
+
+def is_rutinitas_active_on_day(r_hari: str, target_hari: str) -> bool:
+    """Memeriksa apakah rutinitas dijadwalkan aktif pada target_hari."""
+    if not r_hari or not target_hari:
+        return False
+    r_lower = r_hari.lower().strip()
+    target_lower = target_hari.lower().strip()
+    if r_lower in ("setiap hari", "semua", "all", "daily", "tiap hari"):
+        return True
+    days = [d.strip() for d in r_lower.replace(",", " ").split() if d.strip()]
+    return target_lower in days
+
+def parse_hari_rutinitas(raw_hari: str) -> str | None:
+    """
+    Memvalidasi dan menormalisasi input hari untuk rutinitas.
+    Mendukung:
+    - 'setiap hari', 'tiap hari', 'daily'
+    - Satu hari: 'senin', 'hari jumat'
+    - Multi-hari: 'senin, kamis', 'selasa & jumat', 'senin dan rabu', 'sabtu minggu'
+    Mengembalikan string hari terurut (contoh: 'senin, kamis') atau 'setiap hari'.
+    """
+    if not raw_hari:
+        return None
+    raw = raw_hari.lower().strip()
+    if raw in ("setiap hari", "tiap hari", "daily", "semua", "all", "everyday"):
+        return "setiap hari"
+
+    cleaned = raw.replace(" dan ", ",").replace("&", ",").replace("/", ",")
+    tokens = [t.strip() for t in cleaned.replace(",", " ").split() if t.strip()]
+
+    matched_days = []
+    for token in tokens:
+        t = token
+        if t.startswith("hari "):
+            t = t[5:].strip()
+        elif t.startswith("hari"):
+            t = t[4:].strip()
+        if not t or t == "hari":
+            continue
+        if t in ORDER_HARI:
+            if t not in matched_days:
+                matched_days.append(t)
+        else:
+            return None
+
+    if not matched_days:
+        return None
+    if len(matched_days) == 7:
+        return "setiap hari"
+
+    matched_days.sort(key=lambda d: ORDER_HARI.index(d))
+    return ", ".join(matched_days)
+
 def parse_hari_todo(hari_str: str, now_dt: datetime = None) -> str | None:
     """
     Menormalisasi input hari untuk to-do.

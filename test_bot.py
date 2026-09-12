@@ -14,6 +14,8 @@ from bot import (
     normalize_time,
     save_jadwal_data,
     normalize_rutinitas_item,
+    is_rutinitas_active_on_day,
+    parse_hari_rutinitas,
     generate_daily_briefing,
     cleanup_expired_tasks,
     load_subscribers,
@@ -308,24 +310,60 @@ def test_rutinitas_crud():
     assert norm2["hari"] == "jumat"
     assert norm2["jam"] == "11:30"
 
-    # 3. Simulasi filter hari (misal hari Jumat)
+    # 3. Pengujian parsing input multi-hari (parse_hari_rutinitas)
+    assert parse_hari_rutinitas("senin, kamis") == "senin, kamis"
+    assert parse_hari_rutinitas("kamis, senin") == "senin, kamis"  # Terurut
+    assert parse_hari_rutinitas("selasa & jumat") == "selasa, jumat"
+    assert parse_hari_rutinitas("senin dan rabu") == "senin, rabu"
+    assert parse_hari_rutinitas("hari rabu, hari sabtu") == "rabu, sabtu"
+    assert parse_hari_rutinitas("setiap hari") == "setiap hari"
+    assert parse_hari_rutinitas("bukan_hari") is None
+
+    # 4. Pengujian filter hari aktif (is_rutinitas_active_on_day)
+    assert is_rutinitas_active_on_day("setiap hari", "senin") is True
+    assert is_rutinitas_active_on_day("senin, kamis", "senin") is True
+    assert is_rutinitas_active_on_day("senin, kamis", "kamis") is True
+    assert is_rutinitas_active_on_day("senin, kamis", "selasa") is False
+    assert is_rutinitas_active_on_day("jumat", "jumat") is True
+    assert is_rutinitas_active_on_day("jumat", "minggu") is False
+
+    # 5. Simulasi pencopotan hari dari rutinitas (hari tertentu)
+    # Skenario A: Rutinitas 'senin, jumat', hapus 'jumat' -> sisa 'senin'
+    days_item = [d.strip() for d in "senin, jumat".split(",")]
+    days_item.remove("jumat")
+    assert ", ".join(days_item) == "senin"
+
+    # Skenario B: Rutinitas 'setiap hari', hapus 'minggu' -> sisa 6 hari
+    from utils import ORDER_HARI
+    active_all = list(ORDER_HARI)
+    active_all.remove("minggu")
+    assert len(active_all) == 6
+    assert "minggu" not in active_all
+
+    # Skenario C: Rutinitas 'jumat', hapus 'jumat' -> sisa 0 (dihapus permanen)
+    single_day = ["jumat"]
+    single_day.remove("jumat")
+    assert len(single_day) == 0
+
+    # 6. Simulasi filter hari aktif dalam list rutinitas
     semua_rutinitas = [
         {"id": 1, "hari": "setiap hari", "jam": "04:30", "kegiatan": "Subuh"},
-        {"id": 2, "hari": "jumat", "jam": "11:30", "kegiatan": "Salat Jumat"},
+        {"id": 2, "hari": "senin, jumat", "jam": "11:30", "kegiatan": "Salat / Senam"},
         {"id": 3, "hari": "minggu", "jam": "08:00", "kegiatan": "Olahraga"}
     ]
     hari_jumat_aktif = [
         r for r in semua_rutinitas 
-        if r["hari"] in ("setiap hari", "semua", "all", "daily", "jumat")
+        if is_rutinitas_active_on_day(r["hari"], "jumat")
     ]
-    assert len(hari_jumat_aktif) == 2  # Subuh + Salat Jumat (Olahraga minggu tidak masuk)
-    # 4. Simulasi input multi-ID dengan urutan acak & pemisah koma/spasi
+    assert len(hari_jumat_aktif) == 2  # Subuh + Salat / Senam
+
+    # 7. Simulasi input multi-ID dengan urutan acak & pemisah koma/spasi
     input_str = "4, 1, 3 2 1"
     raw_tokens = input_str.replace(",", " ").split()
     parsed_ids = list(dict.fromkeys([int(t) for t in raw_tokens if t.isdigit()]))
     assert parsed_ids == [4, 1, 3, 2]  # Duplikat '1' di akhir hilang, urutan acak diterima
 
-    print("[OK] Logika penyeragaman, filter hari, & multi-ID rutinitas terverifikasi.")
+    print("[OK] Logika penyeragaman, multi-hari, filter hari, & pencopotan hari rutinitas terverifikasi.")
 
 def test_cleanup_expired_tasks():
     """Memverifikasi penghapusan otomatis tugas yang telah melewati deadline."""
