@@ -16,6 +16,10 @@ from bot import (
     normalize_rutinitas_item,
     is_rutinitas_active_on_day,
     parse_hari_rutinitas,
+    get_rutinitas_active_days,
+    merge_rutinitas_days,
+    find_rutinitas_conflict,
+    reindex_rutinitas,
     generate_daily_briefing,
     cleanup_expired_tasks,
     load_subscribers,
@@ -422,10 +426,74 @@ def test_cleanup_expired_tasks():
     save_tugas_data([])
     print("[OK] Logika penghapusan otomatis tugas kedaluwarsa (cleanup_expired_tasks) terverifikasi.")
 
+def test_rutinitas_smart_features():
+    """
+    Memverifikasi 4 fitur pintar rutinitas:
+    1. ID berurutan kronologis berdasarkan jam.
+    2. Auto-merge kegiatan yang sama di jam yang sama.
+    3. Auto-reindex saat ada rutinitas yang dihapus.
+    4. Deteksi tabrakan jadwal (conflict detection).
+    """
+    # 1. Uji ID berurutan kronologis berdasarkan jam
+    acak = [
+        {"id": 99, "hari": "senin", "jam": "19:00", "kegiatan": "Malam"},
+        {"id": 50, "hari": "setiap hari", "jam": "04:30", "kegiatan": "Pagi Buta"},
+        {"id": 12, "hari": "rabu", "jam": "07:00", "kegiatan": "Sarapan"},
+    ]
+    terurut = reindex_rutinitas(acak)
+    assert [r["id"] for r in terurut] == [1, 2, 3]
+    assert [r["jam"] for r in terurut] == ["04:30", "07:00", "19:00"]
+    assert terurut[0]["kegiatan"] == "Pagi Buta"
+
+    # 2. Uji Auto-Merge kegiatan & jam yang sama
+    hari_awal = "senin, selasa, rabu, kamis, jumat"
+    hari_tambah = "sabtu, minggu"
+    merged = merge_rutinitas_days(hari_awal, hari_tambah)
+    assert merged == "setiap hari"
+
+    hari_parsial = merge_rutinitas_days("senin", "kamis")
+    assert hari_parsial == "senin, kamis"
+
+    # 3. Uji Deteksi Tabrakan Jadwal (Conflict Detection)
+    jadwal_ada = [
+        {"id": 1, "hari": "senin, kamis", "jam": "06:00", "kegiatan": "Kemas rumah"},
+        {"id": 2, "hari": "jumat", "jam": "11:30", "kegiatan": "Jumatan"},
+    ]
+    # Skenario A: Bentrok di hari Senin pada jam 06:00
+    conflict_1 = find_rutinitas_conflict(jadwal_ada, "06:00", "senin")
+    assert conflict_1 is not None
+    item_bentrok, hari_bentrok = conflict_1
+    assert item_bentrok["id"] == 1
+    assert "senin" in hari_bentrok
+
+    # Skenario B: Tidak bentrok (jam 06:00 tapi hari Selasa, padahal ID 1 cuma Senin & Kamis)
+    conflict_2 = find_rutinitas_conflict(jadwal_ada, "06:00", "selasa")
+    assert conflict_2 is None
+
+    # Skenario C: Tidak bentrok (jam beda)
+    conflict_3 = find_rutinitas_conflict(jadwal_ada, "07:00", "senin")
+    assert conflict_3 is None
+
+    # 4. Uji Auto-Reindex saat ada rutinitas yang dihapus
+    sebelum_hapus = [
+        {"id": 1, "jam": "04:30", "kegiatan": "A"},
+        {"id": 2, "jam": "06:00", "kegiatan": "B"},
+        {"id": 3, "jam": "08:00", "kegiatan": "C"},
+        {"id": 4, "jam": "12:00", "kegiatan": "D"},
+    ]
+    sisa = [r for r in sebelum_hapus if r["id"] != 2]
+    sisa_reindexed = reindex_rutinitas(sisa)
+    assert len(sisa_reindexed) == 3
+    assert [r["id"] for r in sisa_reindexed] == [1, 2, 3]
+    assert sisa_reindexed[1]["kegiatan"] == "C"
+
+    print("[OK] 4 Fitur pintar rutinitas (reindex kronologis, auto-merge, conflict detection, auto-reindex hapus) terverifikasi.")
+
 if __name__ == "__main__":
     test_handlers()
     test_jadwal_data()
     test_rutinitas_crud()
+    test_rutinitas_smart_features()
     test_tugas_crud()
     test_cleanup_expired_tasks()
     test_todo_crud()

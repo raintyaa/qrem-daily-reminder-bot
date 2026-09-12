@@ -14,6 +14,9 @@ from utils import (
     normalize_time,
     is_rutinitas_active_on_day,
     parse_hari_rutinitas,
+    merge_rutinitas_days,
+    find_rutinitas_conflict,
+    reindex_rutinitas,
     ORDER_HARI,
 )
 
@@ -229,22 +232,70 @@ async def tambahrutinitas_command(update: Update, context: ContextTypes.DEFAULT_
     raw_rutinitas = data.get("rutinitas", [])
     rutinitas = [normalize_rutinitas_item(item, i) for i, item in enumerate(raw_rutinitas, 1)]
 
-    next_id = max([r.get("id", 0) for r in rutinitas], default=0) + 1
+    # 1. Cek apakah ada kegiatan yang sama pada jam yang sama (Auto-Merge)
+    kegiatan_clean = kegiatan.lower().strip()
+    existing_same_kegiatan = None
+    for r in rutinitas:
+        if r.get("jam") == jam_final and r.get("kegiatan", "").lower().strip() == kegiatan_clean:
+            existing_same_kegiatan = r
+            break
 
+    if existing_same_kegiatan:
+        merged_days = merge_rutinitas_days(existing_same_kegiatan.get("hari", ""), hari_final)
+        if merged_days == existing_same_kegiatan.get("hari", ""):
+            await update.message.reply_text(
+                f"ℹ️ Rutinitas **{kegiatan}** pada pukul **{jam_final} WIB** sudah aktif di hari tersebut ({merged_days.title()}).",
+                parse_mode="Markdown"
+            )
+            return
+
+        existing_same_kegiatan["hari"] = merged_days
+        rutinitas = reindex_rutinitas(rutinitas)
+        data["rutinitas"] = rutinitas
+        if save_jadwal_data(data):
+            pesan = (
+                f"🔄 **Rutinitas Digabungkan ke ID `#{existing_same_kegiatan['id']}`!**\n\n"
+                f"• 🔔 **Kegiatan:** {kegiatan}\n"
+                f"• ⏰ **Waktu:** {jam_final} WIB\n"
+                f"• 📅 **Jadwal Diperbarui:** {merged_days.title()}\n\n"
+                "Ketik `/rutinitas` untuk melihat daftar rutinitas."
+            )
+        else:
+            pesan = "❌ Gagal memperbarui rutinitas ke database."
+
+        await update.message.reply_text(pesan, parse_mode="Markdown")
+        return
+
+    # 2. Cek apakah ada tabrakan jadwal (jam sama, kegiatan beda, hari bentrok)
+    conflict = find_rutinitas_conflict(rutinitas, jam_final, hari_final)
+    if conflict:
+        conflicting_item, overlapping_days = conflict
+        hari_bentrok_str = ", ".join([d.title() for d in overlapping_days])
+        pesan = (
+            f"⚠️ **Jadwal Bertabrakan!**\n\n"
+            f"Pada pukul **{jam_final} WIB** (hari **{hari_bentrok_str}**), kamu sudah memiliki rutinitas lain:\n"
+            f"• 🆔 `#{conflicting_item['id']}`: **{conflicting_item['kegiatan']}**\n\n"
+            "💡 *Silakan pilih jam lain atau sesuaikan jadwal yang bertabrakan terlebih dahulu.*"
+        )
+        await update.message.reply_text(pesan, parse_mode="Markdown")
+        return
+
+    # 3. Tambah rutinitas baru & auto-reindex secara kronologis
     item_baru = {
-        "id": next_id,
+        "id": 0,
         "hari": hari_final,
         "jam": jam_final,
         "kegiatan": kegiatan
     }
-
     rutinitas.append(item_baru)
+    rutinitas = reindex_rutinitas(rutinitas)
     data["rutinitas"] = rutinitas
 
     if save_jadwal_data(data):
+        new_id = item_baru["id"]
         pesan = (
             f"✅ **Rutinitas Berhasil Ditambahkan!**\n\n"
-            f"🆔 **ID:** `#{next_id}`\n"
+            f"🆔 **ID:** `#{new_id}` (Urutan waktu: {jam_final} WIB)\n"
             f"📅 **Hari:** {hari_final.title()}\n"
             f"⏰ **Waktu:** {jam_final} WIB\n"
             f"🔔 **Kegiatan:** {kegiatan}\n\n"
@@ -336,12 +387,14 @@ async def hapusrutinitas_command(update: Update, context: ContextTypes.DEFAULT_T
 
         if not remaining_days:
             sisa_rutinitas = [r for r in rutinitas if r["id"] != target_id]
+            sisa_rutinitas = reindex_rutinitas(sisa_rutinitas)
             data["rutinitas"] = sisa_rutinitas
             if save_jadwal_data(data):
                 await update.message.reply_text(
                     f"🗑️ **Rutinitas Dihapus Sepenuhnya:**\n\n"
                     f"Karena seluruh harinya ({', '.join([d.title() for d in matched_remove])}) telah dicopot, "
-                    f"rutinitas `#{target_id}` (**{item.get('kegiatan')}**) dihapus dari database.",
+                    f"rutinitas (**{item.get('kegiatan')}**) telah dihapus dari database.\n"
+                    "*(Nomor ID rutinitas lain otomatis disesuaikan berurutan)*",
                     parse_mode="Markdown"
                 )
             else:
@@ -351,13 +404,14 @@ async def hapusrutinitas_command(update: Update, context: ContextTypes.DEFAULT_T
         remaining_days.sort(key=lambda d: ORDER_HARI.index(d))
         new_hari_str = ", ".join(remaining_days)
         item["hari"] = new_hari_str
+        rutinitas = reindex_rutinitas(rutinitas)
         data["rutinitas"] = rutinitas
 
         if save_jadwal_data(data):
             hari_copot_str = ", ".join([d.title() for d in matched_remove])
             pesan = (
                 f"✅ **Hari Rutinitas Berhasil Diperbarui!**\n\n"
-                f"• 🆔 `#{target_id}`: **{item.get('kegiatan')}** (Pukul {item.get('jam')} WIB)\n"
+                f"• 🆔 `#{item['id']}`: **{item.get('kegiatan')}** (Pukul {item.get('jam')} WIB)\n"
                 f"• ❌ Hari dicopot: {hari_copot_str}\n"
                 f"• 📅 Jadwal aktif sekarang: **{new_hari_str.title()}**"
             )
@@ -399,6 +453,8 @@ async def hapusrutinitas_command(update: Update, context: ContextTypes.DEFAULT_T
         )
         return
 
+    # Auto-reindex urutan ID yang tersisa (1..N)
+    sisa_rutinitas = reindex_rutinitas(sisa_rutinitas)
     data["rutinitas"] = sisa_rutinitas
     if save_jadwal_data(data):
         pesan_list = []
@@ -406,17 +462,18 @@ async def hapusrutinitas_command(update: Update, context: ContextTypes.DEFAULT_T
             item = berhasil_dihapus[0]
             pesan_list.append(
                 f"🗑️ **Rutinitas Berhasil Dihapus:**\n\n"
-                f"• 🆔 `#{item.get('id')}`: **{item.get('kegiatan')}**\n"
-                f"  ⏰ {item.get('hari').title()} pukul {item.get('jam')} WIB"
+                f"• **{item.get('kegiatan')}** ({item.get('hari').title()} - Pukul {item.get('jam')} WIB)\n\n"
+                "*(Nomor ID rutinitas lain otomatis disesuaikan kembali secara berurutan)*"
             )
         else:
             daftar_teks = "\n".join([
-                f"• 🆔 `#{item.get('id')}`: **{item.get('kegiatan')}** ({item.get('hari').title()} - {item.get('jam')} WIB)"
+                f"• **{item.get('kegiatan')}** ({item.get('hari').title()} - {item.get('jam')} WIB)"
                 for item in berhasil_dihapus
             ])
             pesan_list.append(
                 f"🗑️ **{len(berhasil_dihapus)} Rutinitas Berhasil Dihapus:**\n\n"
-                f"{daftar_teks}"
+                f"{daftar_teks}\n\n"
+                "*(Nomor ID rutinitas lain otomatis disesuaikan kembali secara berurutan)*"
             )
 
         if tidak_ditemukan:

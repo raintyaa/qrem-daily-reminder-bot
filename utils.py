@@ -109,6 +109,50 @@ def parse_hari_rutinitas(raw_hari: str) -> str | None:
     matched_days.sort(key=lambda d: ORDER_HARI.index(d))
     return ", ".join(matched_days)
 
+def get_rutinitas_active_days(r_hari: str) -> list[str]:
+    """Mengembalikan daftar hari spesifik yang aktif untuk rutinitas."""
+    if not r_hari:
+        return []
+    r_lower = r_hari.lower().strip()
+    if r_lower in ("setiap hari", "semua", "all", "daily", "tiap hari"):
+        return list(ORDER_HARI)
+    return [d.strip() for d in r_lower.replace(",", " ").split() if d.strip() in ORDER_HARI]
+
+def merge_rutinitas_days(day_str1: str, day_str2: str) -> str:
+    """Menggabungkan dua spesifikasi hari rutinitas dan mengurutkannya."""
+    days1 = get_rutinitas_active_days(day_str1)
+    days2 = get_rutinitas_active_days(day_str2)
+    merged = list(dict.fromkeys(days1 + days2))
+    if len(merged) >= 7:
+        return "setiap hari"
+    merged.sort(key=lambda d: ORDER_HARI.index(d))
+    return ", ".join(merged)
+
+def find_rutinitas_conflict(rutinitas_list: list, new_jam: str, new_hari: str, exclude_id: int = None) -> tuple[dict, list[str]] | None:
+    """
+    Memeriksa apakah ada rutinitas lain pada jam yang sama yang bertabrakan di hari yang sama.
+    Mengembalikan (item_bentrok, daftar_hari_bentrok) jika bertabrakan, atau None jika aman.
+    """
+    new_active_days = set(get_rutinitas_active_days(new_hari))
+    for r in rutinitas_list:
+        if exclude_id is not None and r.get("id") == exclude_id:
+            continue
+        if r.get("jam") == new_jam:
+            r_active_days = set(get_rutinitas_active_days(r.get("hari", "")))
+            overlapping = [d for d in ORDER_HARI if d in new_active_days and d in r_active_days]
+            if overlapping:
+                return r, overlapping
+    return None
+
+def reindex_rutinitas(rutinitas_list: list) -> list:
+    """
+    Mengurutkan rutinitas berdasarkan jam secara kronologis dan memberi nomor ID baru 1..N.
+    """
+    sorted_list = sorted(rutinitas_list, key=lambda x: x.get("jam", "00:00"))
+    for idx, item in enumerate(sorted_list, 1):
+        item["id"] = idx
+    return sorted_list
+
 def parse_hari_todo(hari_str: str, now_dt: datetime = None) -> str | None:
     """
     Menormalisasi input hari untuk to-do.
